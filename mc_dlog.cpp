@@ -19,7 +19,6 @@ ulint modexp(ulint g, ulint r, ulint n) {
 	while (r > 1) {
 		if(r%2){ // if r is odd
 			result = (result*g) % n; // multiply g with result
-			
 			r /= 2;
 			g = (g*g) % n;
 		}
@@ -40,19 +39,20 @@ ulint random(ulint min, ulint max){
 	return r;
 }
 
+/* Calculates the order of G */
 ulint ordOfG(ulint g, ulint n) {
 	HashTable Ord;
 
 	for(ulint i = 0; i <= sqrt(n); i++) {
-		ulint r = random(0, (n-1));
+		ulint r = random(0, (n-1)); // generates a random number between 0 and n-1
 		ulint y = modexp(g, r, n);
 
 	  	if(Ord.existingKey(y)) {
-	  		if(r > Ord.getValue(y)){
+	  		if(r > Ord.getValue(y)){ // if r is greater than value at key y
 	  			ulint val = r - Ord.getValue(y);
 	  			return val;
 	  		}
-	  		else if (r < Ord.getValue(y)) {
+	  		else if (r < Ord.getValue(y)) { // if value at key y is greater than r
 	  			ulint val = Ord.getValue(y) - r;
 	  			return val;
 	  		}
@@ -62,57 +62,63 @@ ulint ordOfG(ulint g, ulint n) {
 	  	}
 	}
 
-	return n-1;
+	return n-1; // if no order can be found, assume order is n-1
 }
 
+/* Calculates the discrete logarithm */
 ulint discreteLog(ulint g, ulint a, ulint n) {
 	HashTable A, B;
 	ulint orderG = ordOfG(g,n);
 
-	for(ulint i = 0; i <= sqrt(n); i++) {
-		ulint r = random(0, (n-1));
-		ulint y = (a * modexp(g, r, n)) % n;
-		ulint result, bVal, aVal;
-
-		if(B.existingKey(y)) {
-			bVal = B.getValue(y);
-			if(r > bVal) {
-				result = (orderG + bVal) - r;
-			} else {
-				result = (bVal-r);
-			}
-
-			return result;
-
-		} else {
-			try {
-				A.insert(y, r);
-			}catch(...) {}
-		}
+	try {
+		for(ulint i = 0; i <= sqrt(n); i++) {
+			ulint r = random(0, (n-1)); // generates a random number between 0 and n-1
+			ulint y = (a * modexp(g, r, n)) % n;
+			ulint result, bVal, aVal;
 	
-		r = random(0, (n-1));
-		y = modexp(g, r, n);
-
-		if(A.existingKey(y)) {
-			aVal = A.getValue(y);
-			if(aVal > r) {
-				result = (r + orderG) - aVal;
+			if(B.existingKey(y)) {
+				bVal = B.getValue(y) % orderG;
+				r = r % orderG;
+	
+				if(r > bVal) { // if r is greater than bVal
+					result = (orderG + bVal) - r; // add order to bVal
+				} else {
+					result = (bVal-r);
+				}
+	
+				return result;
+	
 			} else {
-				result = (r-aVal);
+				try {
+					A.insert(y, r);
+				}catch(...) {}
 			}
-
-			return result;
-
-		} else {
-			try {
-				B.insert(y, r);
-			}catch(...){}
+		
+			r = random(0, (n-1)); // generates another random number between 0 and n-1
+			y = modexp(g, r, n);
+	
+			if(A.existingKey(y)) {
+				aVal = A.getValue(y) % orderG;
+				r = r % orderG;
+	
+				if(aVal > r) { // if aVal is greater than r
+					result = (r + orderG) - aVal; // add order to r
+				} else {
+					result = (r-aVal);
+				}
+	
+				return result;
+	
+			} else {
+				try {
+					B.insert(y, r);
+				}catch(...){}
+			}
 		}
-	}
-
-	return 0;
+	} catch(...){}
 }
 
+/* Calculates the result using the order of G and the discrete logarithm */
 ulint result(ulint g, ulint a, ulint n) {
 	ulint res, dLog, orderG;
 
@@ -123,6 +129,7 @@ ulint result(ulint g, ulint a, ulint n) {
 	return res;
 }
 
+/* Main method */
 int main(int argc, char** argv) {
 	ulint g, a, n;
 
@@ -134,10 +141,6 @@ int main(int argc, char** argv) {
 		stringstream(argv[1]) >> g;
 		stringstream(argv[2]) >> a;
 		stringstream(argv[3]) >> n;
-
-		ordOfG(g, n);
-		discreteLog(g, a, n);
-		result(g,a,n);
 
 		cout << "Result with g = " << g << ", a = " << a << ", and n = " << n << " is: " << (result(g,a,n)) << endl;
 
